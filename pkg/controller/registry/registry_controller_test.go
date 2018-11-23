@@ -37,8 +37,8 @@ import (
 
 var c client.Client
 
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-var depKey = types.NamespacedName{Name: "foo-deployment", Namespace: "default"}
+var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: ""}}
+var depKey = types.NamespacedName{Name: "foo-deployment", Namespace: ""}
 
 const timeout = time.Second * 5
 
@@ -47,7 +47,7 @@ func TestReconcile(t *testing.T) {
 	test.SkipUnlessIntegrationTesting(t)
 
 	g := gomega.NewGomegaWithT(t)
-	instance := &kubicv1beta1.Registry{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	instance := &kubicv1beta1.Registry{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ""}}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.

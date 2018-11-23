@@ -33,12 +33,12 @@ func TestStorageRegistry(t *testing.T) {
 
 	key := types.NamespacedName{
 		Name:      "foo",
-		Namespace: "default",
+		Namespace: "",
 	}
 	created := &Registry{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: "default",
+			Namespace: "",
 		}}
 	g := gomega.NewGomegaWithT(t)
 
