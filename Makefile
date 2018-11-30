@@ -5,6 +5,9 @@ SOURCES_API_DIR   = ./pkg/apis/kubic
 GO         := GO111MODULE=on GO15VENDOREXPERIMENT=1 go
 GO_NOMOD   := GO111MODULE=off go
 GO_VERSION := $(shell $(GO) version | sed -e 's/^[^0-9.]*\([0-9.]*\).*/\1/')
+GO_BIN     := $(shell [ -n "${GOBIN}" ] && echo ${GOBIN} || (echo `echo ${GOPATH} | cut -f1 -d':'`/bin))
+
+DEEPCOPY_GENERATOR := $(GO_BIN)/deepcopy-gen
 
 # go source files, ignore vendor directory
 REGS_OPER_SRCS           = $(shell find $(SOURCES_DIRS) -type f -name '*.go' -not -path "*generated*")
@@ -143,7 +146,7 @@ clean-local-deploy:
 #
 local-run: $(REGS_OPER_EXE)
 	[ -r $(KUBECONFIG) ] || $(SUDO_E) chmod 644 $(KUBECONFIG)
-	@echo ">>> Running $(REGS_OPER_EXE) as _root_"
+	@echo ">>> Running $(REGS_OPER_EXE)"
 	$(REGS_OPER_EXE) manager \
 		-v $(VERBOSE_LEVEL) \
 		--kubeconfig $(KUBECONFIG) \
@@ -178,11 +181,13 @@ ifndef KUSTOMIZE_EXE
 endif
 
 # NOTE: deepcopy-gen doesn't support go1.11's modules, so we must 'go get' it
-deepcopy-deps:
-	@echo ">>> Getting deepcopy-gen"
-	 -@$(GO_NOMOD) get -u k8s.io/code-generator/cmd/deepcopy-gen
+$(DEEPCOPY_GENERATOR):
+	@[ -n "${GOPATH}" ] || ( echo "FATAL: GOPATH not defined" ; exit 1 ; )
+	@echo ">>> Getting deepcopy-gen (for $(DEEPCOPY_GENERATOR))"
+	-@$(GO_NOMOD) get    -u k8s.io/code-generator/cmd/deepcopy-gen
+	-@$(GO_NOMOD) get -d -u k8s.io/apimachinery
 
-generate: $(REGS_OPER_GEN_SRCS) deepcopy-deps
+generate: $(REGS_OPER_GEN_SRCS) $(DEEPCOPY_GENERATOR)
 	 @echo ">>> Generating files..."
 	 @$(GO) generate -x $(SOURCES_DIRS_GO)
 
@@ -233,4 +238,4 @@ _vendor-download:
 # Other stuff
 #############################################################
 
--include Makefile.local
+-include build/make/*.mk
