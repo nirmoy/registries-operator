@@ -43,8 +43,11 @@ const (
 	// the registries controller name
 	regsControllerName = "KubicRegistriesController"
 
-	// certificates directory
+	// certificates directory for Docker
 	dockerCertsDir = "/etc/docker/certs.d/"
+
+	// certificates directory for podman
+	podmanCertsDir = "/etc/containers/certs.d/"
 )
 
 var (
