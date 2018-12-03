@@ -23,7 +23,8 @@ import (
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
-	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,7 +39,9 @@ import (
 var c client.Client
 
 var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: ""}}
-var depKey = types.NamespacedName{Name: "foo-deployment", Namespace: ""}
+
+//TODO: reuse logic for naming from registry_cert_instaler.go to avoid hardcoding
+var jobKey = types.NamespacedName{Name: "kubic-registry-installer-foo.com:5000", Namespace: metav1.NamespaceSystem}
 
 const timeout = time.Second * 5
 
@@ -47,7 +50,7 @@ func TestReconcile(t *testing.T) {
 	test.SkipUnlessIntegrationTesting(t)
 
 	g := gomega.NewGomegaWithT(t)
-	instance := &kubicv1beta1.Registry{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ""}}
+	instance := &kubicv1beta1.Registry{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ""}, Spec: kubicv1beta1.RegistrySpec{HostPort: "foo.com:5000", Certificate: &corev1.SecretReference{Name: "foo"}}}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
@@ -71,17 +74,17 @@ func TestReconcile(t *testing.T) {
 	defer c.Delete(context.TODO(), instance)
 	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
 
-	deploy := &appsv1.Deployment{}
-	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
+	job := &batchv1.Job{}
+	g.Eventually(func() error { return c.Get(context.TODO(), jobKey, job) }, timeout).
 		Should(gomega.Succeed())
 
-	// Delete the Deployment and expect Reconcile to be called for Deployment deletion
-	g.Expect(c.Delete(context.TODO(), deploy)).NotTo(gomega.HaveOccurred())
+	// Delete the Job and expect Reconcile to be called for Job deletion
+	g.Expect(c.Delete(context.TODO(), job)).NotTo(gomega.HaveOccurred())
 	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
-	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
+	g.Eventually(func() error { return c.Get(context.TODO(), jobKey, job) }, timeout).
 		Should(gomega.Succeed())
 
-	// Manually delete Deployment since GC isn't enabled in the test control plane
-	g.Expect(c.Delete(context.TODO(), deploy)).To(gomega.Succeed())
+	// Manually delete job since GC isn't enabled in the test control plane
+	g.Expect(c.Delete(context.TODO(), job)).To(gomega.Succeed())
 
 }
